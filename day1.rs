@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+
 use std::fs;
 
 fn sort<T: Copy + Ord + std::fmt::Debug>(to_sort: &[T]) -> Vec<T> {
@@ -24,21 +25,19 @@ fn sort<T: Copy + Ord + std::fmt::Debug>(to_sort: &[T]) -> Vec<T> {
     output
 }
 
+fn get_next_number<'a>(iter: &mut impl Iterator<Item = &'a str>) -> i32 {
+    iter.next()
+        .map(|i| i.parse::<i32>().expect("Could not parse number!"))
+        .expect("Could not find number!")
+}
+
 fn parse_input(input: &str) -> (Vec<i32>, Vec<i32>) {
     let mut one = Vec::<i32>::new();
     let mut two = Vec::<i32>::new();
     for line in input.lines() {
         let mut nums = line.split_whitespace();
-        one.push(
-            nums.next()
-                .map(|i| i.parse().expect("Could not parse number!"))
-                .expect("Could not find number!"),
-        );
-        two.push(
-            nums.next()
-                .map(|i| i.parse().expect("Could not parse number!"))
-                .expect("Could not find number!"),
-        );
+        one.push(get_next_number(&mut nums));
+        two.push(get_next_number(&mut nums));
     }
     (one, two)
 }
@@ -70,7 +69,7 @@ fn get_similarity_score(left: Vec<i32>, right: Vec<i32>) -> i32 {
 }
 
 fn main() {
-    let raw_input = fs::read_to_string("day1input.txt").expect("Couldn't read input file!");
+    let raw_input = fs::read_to_string("input/day1input.txt").expect("Couldn't read input file!");
     let (left, right) = parse_input(&raw_input);
     let (left_sorted, right_sorted) = (sort(&left), sort(&right));
     let total_distance = get_total_distance(left_sorted, right_sorted);
