@@ -32,24 +32,24 @@ fn get_next_number<'a>(iter: &mut impl Iterator<Item = &'a str>) -> i32 {
 }
 
 fn parse_input(input: &str) -> (Vec<i32>, Vec<i32>) {
-    let mut one = Vec::<i32>::new();
-    let mut two = Vec::<i32>::new();
+    let mut left = Vec::<i32>::new();
+    let mut right = Vec::<i32>::new();
     for line in input.lines() {
         let mut nums = line.split_whitespace();
-        one.push(get_next_number(&mut nums));
-        two.push(get_next_number(&mut nums));
+        left.push(get_next_number(&mut nums));
+        right.push(get_next_number(&mut nums));
     }
-    (one, two)
+    (left, right)
 }
 
-fn get_total_distance(one: Vec<i32>, two: Vec<i32>) -> i32 {
+fn get_total_distance(left: Vec<i32>, right: Vec<i32>) -> i32 {
     let mut total = 0;
-    for (i, _) in one.iter().enumerate() {
-        let (left, right) = (one[i], two[i]);
-        if left > right {
-            total += left - right;
+    for (i, _) in left.iter().enumerate() {
+        let (leftnum, rightnum) = (left[i], right[i]);
+        if leftnum > rightnum {
+            total += leftnum - rightnum;
         } else {
-            total += right - left
+            total += rightnum - leftnum
         }
     }
     total
