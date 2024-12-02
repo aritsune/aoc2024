@@ -58,9 +58,8 @@ fn test_is_safe(test: &[i32], fails_allowed: i32) -> bool {
     true
 }
 
-pub fn solution() {
-    let raw_data = fs::read_to_string("input/day2input.txt").expect("Failed to read input file!");
-    let data = parse_input(&raw_data);
+pub fn solve(raw_data: &str) {
+    let data = parse_input(raw_data);
     let safe_count: i32 = data
         .iter()
         .filter(|t| !t.is_empty())
@@ -70,7 +69,7 @@ pub fn solution() {
             false => 0,
         })
         .sum();
-    print!("{} tests are safe without dampener", safe_count);
+    println!("{} tests are safe without dampener", safe_count);
     let safe_count_with_dampener: i32 = data
         .iter()
         .filter(|t| !t.is_empty())
@@ -80,5 +79,10 @@ pub fn solution() {
             false => 0,
         })
         .sum();
-    print!("{} tests are safe with dampener", safe_count_with_dampener);
+    println!("{} tests are safe with dampener", safe_count_with_dampener);
+}
+
+pub fn solution() {
+    let raw_data = fs::read_to_string("input/day2input.txt").expect("Failed to read input file!");
+    solve(&raw_data);
 }

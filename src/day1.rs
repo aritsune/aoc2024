@@ -68,12 +68,16 @@ fn get_similarity_score(left: Vec<i32>, right: Vec<i32>) -> i32 {
     total
 }
 
-pub fn solution() {
-    let raw_input = fs::read_to_string("input/day1input.txt").expect("Couldn't read input file!");
-    let (left, right) = parse_input(&raw_input);
+pub fn solve(raw_data: &str) {
+    let (left, right) = parse_input(raw_data);
     let (left_sorted, right_sorted) = (sort(&left), sort(&right));
     let total_distance = get_total_distance(left_sorted, right_sorted);
     println!("Total distance is {:?}", total_distance);
     let similarity_score = get_similarity_score(left, right);
     println!("Similarity score is {:?}", similarity_score);
+}
+
+pub fn solution() {
+    let raw_data = fs::read_to_string("input/day1input.txt").expect("Couldn't read input file!");
+    solve(&raw_data);
 }
