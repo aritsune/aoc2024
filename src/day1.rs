@@ -1,6 +1,7 @@
 use std::collections::HashMap;
-
 use std::fs;
+
+use proptest::proptest;
 
 fn sort<T: Copy + Ord + std::fmt::Debug>(to_sort: &[T]) -> Vec<T> {
     // janky out of place insertion sort
@@ -80,4 +81,11 @@ pub fn solve(raw_data: &str) {
 pub fn solution() {
     let raw_data = fs::read_to_string("input/day1input.txt").expect("Couldn't read input file!");
     solve(&raw_data);
+}
+
+proptest! {
+    #[test]
+    fn it_works(raw_data in "([0-9]{1, 6} [0-9]{1, 6}\\n)+") {
+        solve(&raw_data);
+    }
 }

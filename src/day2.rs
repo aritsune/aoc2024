@@ -1,4 +1,5 @@
 use std::fs;
+use proptest::proptest;
 
 fn parse_input(input: &str) -> Vec<Vec<i32>> {
     input
@@ -85,4 +86,11 @@ pub fn solve(raw_data: &str) {
 pub fn solution() {
     let raw_data = fs::read_to_string("input/day2input.txt").expect("Failed to read input file!");
     solve(&raw_data);
+}
+
+proptest! {
+    #[test]
+    fn it_works(raw_data in "(([0-9]{1, 6} )*[0-9]{1, 6}\\n)+") {
+        solve(&raw_data);
+    }
 }
