@@ -68,7 +68,7 @@ fn get_similarity_score(left: Vec<i32>, right: Vec<i32>) -> i32 {
     total
 }
 
-fn main() {
+pub fn solution() {
     let raw_input = fs::read_to_string("input/day1input.txt").expect("Couldn't read input file!");
     let (left, right) = parse_input(&raw_input);
     let (left_sorted, right_sorted) = (sort(&left), sort(&right));

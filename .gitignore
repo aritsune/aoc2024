@@ -1,2 +1,7 @@
 input
 bin
+
+
+# Added by cargo
+
+/target
