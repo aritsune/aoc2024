@@ -1,4 +1,4 @@
-use std::{fs, usize};
+use std::fs;
 
 struct WordSearch {
     vec: Vec<Vec<char>>,
@@ -15,20 +15,21 @@ static DIRECTIONS: [(i32, i32); 8] = [
     (-1, -1),
 ];
 
-fn dir_to_str(dir: (i32, i32)) -> String {
-    match dir {
-        (1, 0) => "Forward",
-        (-1, 0) => "Backward",
-        (0, 1) => "Downward",
-        (0, -1) => "Upward",
-        (1, 1) => "Down-right",
-        (-1, 1) => "Down-left",
-        (1, -1) => "Up-right",
-        (-1, -1) => "Up-left",
-        _ => "Bad direction",
-    }
-    .to_owned()
-}
+// For debug
+//fn dir_to_str(dir: (i32, i32)) -> String {
+//    match dir {
+//        (1, 0) => "Forward",
+//        (-1, 0) => "Backward",
+//        (0, 1) => "Downward",
+//        (0, -1) => "Upward",
+//        (1, 1) => "Down-right",
+//        (-1, 1) => "Down-left",
+//        (1, -1) => "Up-right",
+//        (-1, -1) => "Up-left",
+//        _ => "Bad direction",
+//    }
+//    .to_owned()
+//}
 
 impl WordSearch {
     fn get_at(&self, x: usize, y: usize) -> Option<&char> {
