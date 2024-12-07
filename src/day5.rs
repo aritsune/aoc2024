@@ -68,6 +68,7 @@ pub fn solve(data: &str) {
         let mut updateset: Vec<u8> = updateline.split(',').map(|strnum| strnum.parse::<u8>().expect("all numbers in input data to be parseable")).collect();
         if !set_is_valid(&updateset, &rules_map) {
             updateset = fix_set(updateset, &rules_map);
+            assert!(set_is_valid(&updateset, &rules_map));
             fixed_sets.push(updateset);
         }
     }
