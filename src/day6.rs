@@ -146,12 +146,10 @@ fn distance_to_obstacle(
         }
         cur_x += dir.to_offset().0;
         cur_y += dir.to_offset().1;
-        let next_x = cur_x + dir.to_offset().0;
-        let next_y = cur_y + dir.to_offset().1;
         if let Some(pos) = get_position(
             map,
-            next_x,
-            next_y
+            cur_x,
+            cur_y
         ) {
             if pos.is_obstacle {
                 return PatrolSection::Stayed(distance, unrepeated_distance);
