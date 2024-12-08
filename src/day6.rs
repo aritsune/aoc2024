@@ -61,10 +61,15 @@ impl MapPosition {
     }
 }
 
-#[derive(Debug)]
-enum PatrolSection {
-    Stayed(i32, i32),
-    Left(i32),
+fn get_position(map: &mut [Vec<MapPosition>], x: i32, y: i32) -> Option<&mut MapPosition> {
+    // Convert both coordinates to usize
+    // Early return None if the conversion fails as that means we're going out of bounds
+    // (negative index)
+    let xr = usize::try_from(x).ok()?;
+    let yr = usize::try_from(y).ok()?;
+    // Get the position with the coordinates
+    // If either coordinate is out of bounds, return None
+    map.get_mut(yr)?.get_mut(xr)
 }
 
 fn check_for_obstacle(
@@ -74,36 +79,19 @@ fn check_for_obstacle(
     input_dir: &Direction,
 ) -> bool {
     // Simulate what would happen if there was an obstacle in front of us at this position
-    // If
-    // If we ever end up in a spot we've already been facing a direction we've already faced at
-    // that spot, we have a loop and the obstacle is valid
-    // Otherwise we should go out of bounds, in which case there's no loop
-    // Clone the map
+    // Clone the map to keep our own state just for this test
     let mut map = orig_map.to_vec().clone();
     let mut current_dir = input_dir.clone();
     let mut cur_x = x;
     let mut cur_y = y;
     let mut first_iter = true;
     loop {
-        let test_x = cur_x + current_dir.to_offset().0;
-        let test_y = cur_y + current_dir.to_offset().1;
-        // Convert test_x, test_y to usize so we can index into it
-        // Make sure they're both positive while we're at it
-        let (x, y) = {
-            let xr = usize::try_from(test_x).ok();
-            let yr = usize::try_from(test_y).ok();
-            match (xr, yr) {
-                // If both are Some then they're both positive
-                (Some(x), Some(y)) => (x, y),
-                // Otherwise, one of them is negative, we're out of bounds, so return Left from the
-                // main function
-                _ => {
-                    return false;
-                }
-            }
-        };
-        // if this is Some then there is a character at (x, y)
-        if let Some(pos) = map.get_mut(y).and_then(|row| row.get_mut(x)) {
+        let next_x = cur_x + current_dir.to_offset().0;
+        let next_y = cur_y + current_dir.to_offset().1;
+        if let Some(pos) = get_position(&mut map,
+            next_x,
+            next_y
+        ) {
             if first_iter {
                 // Check if our test position has already been walked over
                 // If so, that means an obstacle can't go here
@@ -120,17 +108,25 @@ fn check_for_obstacle(
                 pos.set_already_visited(&current_dir);
                 current_dir = current_dir.turn_clockwise();
             } else if pos.already_visited_dir(&current_dir) {
+                // If we ever end up in a spot we've already been facing a direction we've already faced at
+                // that spot, we have a loop and the obstacle is valid
                 return true;
             } else {
                 pos.set_already_visited(&current_dir);
-                cur_x = test_x;
-                cur_y = test_y;
+                cur_x = next_x;
+                cur_y = next_y;
             }
-        // otherwise, we went out of bounds with either x or y, so return Left
+        // otherwise, we went out of bounds with either x or y, so the obstacle did not cause a loop
         } else {
             return false;
         }
     }
+}
+
+#[derive(Debug)]
+enum PatrolSection {
+    Stayed(i32, i32),
+    Left(i32),
 }
 
 fn distance_to_obstacle(
@@ -150,21 +146,13 @@ fn distance_to_obstacle(
         }
         cur_x += dir.to_offset().0;
         cur_y += dir.to_offset().1;
-        // Convert cur_x, cur_y to usize so we can index into it
-        // Make sure they're both positive while we're at it
-        let (x, y) = {
-            let xr = usize::try_from(cur_x).ok();
-            let yr = usize::try_from(cur_y).ok();
-            match (xr, yr) {
-                // If both are Some then they're both positive
-                (Some(x), Some(y)) => (x, y),
-                // Otherwise, one of them is negative, we're out of bounds, so return Left from the
-                // main function
-                _ => return PatrolSection::Left(unrepeated_distance),
-            }
-        };
-        // if this is Some then there is a character at (x, y)
-        if let Some(pos) = map.get_mut(y).and_then(|row| row.get_mut(x)) {
+        let next_x = cur_x + dir.to_offset().0;
+        let next_y = cur_y + dir.to_offset().1;
+        if let Some(pos) = get_position(
+            map,
+            next_x,
+            next_y
+        ) {
             if pos.is_obstacle {
                 return PatrolSection::Stayed(distance, unrepeated_distance);
             } else {
