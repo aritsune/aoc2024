@@ -1,6 +1,6 @@
-use std::fs;
+use std::{env::current_exe, fs};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Direction {
     Up,
     Right,
@@ -27,7 +27,7 @@ impl Direction {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct MapPosition {
     is_obstacle: bool,
     already_visited_up: bool,
@@ -67,17 +67,82 @@ enum PatrolSection {
     Left(i32),
 }
 
+fn check_for_loop(mut map: Vec<Vec<MapPosition>>, x: i32, y: i32, input_dir: &Direction) -> bool {
+    // Simulate what would happen if we turned at this position
+    // If we ever end up in a spot we've already been facing a direction we've already faced at
+    // that spot, we have a loop and should break
+    // Otherwise we should go out of bounds, in which case there's no loop
+    let mut current_dir = input_dir.turn_clockwise();
+    //println!("Starting to check loop at {}, {}, {:?}", x, y, current_dir);
+    let mut cur_x = x;
+    let mut cur_y = y;
+    loop {
+        let test_x = cur_x + current_dir.to_offset().0;
+        let test_y = cur_y + current_dir.to_offset().1;
+        // Convert test_x, test_y to usize so we can index into it
+        // Make sure they're both positive while we're at it
+        let (x, y) = {
+            let xr = usize::try_from(test_x).ok();
+            let yr = usize::try_from(test_y).ok();
+            match (xr, yr) {
+                // If both are Some then they're both positive
+                (Some(x), Some(y)) => (x, y),
+                // Otherwise, one of them is negative, we're out of bounds, so return Left from the
+                // main function
+                _ => {
+                    //println!("Went OOB, exiting");
+                    return false;
+                }
+            }
+        };
+        // if this is Some then there is a character at (x, y)
+        if let Some(pos) = map.get_mut(y).and_then(|row| row.get_mut(x)) {
+            if pos.is_obstacle {
+                //println!("{},{} is obstacle, turning", x, y);
+                pos.set_already_visited(&current_dir);
+                current_dir = current_dir.turn_clockwise();
+            } else if pos.already_visited_dir(&current_dir) {
+                //println!("Found loop facing {:?} at {},{}", current_dir, x, y);
+                return true;
+            } else {
+                pos.set_already_visited(&current_dir);
+                //println!("{},{} is irrelevant, continuing", x, y);
+                cur_x = test_x;
+                cur_y = test_y;
+            }
+        // otherwise, we went out of bounds with either x or y, so return Left
+        } else {
+            //println!("Went OOB, exiting");
+            return false;
+        }
+    }
+}
+
 fn distance_to_obstacle(
     map: &mut [Vec<MapPosition>],
     start_x: i32,
     start_y: i32,
     dir: &Direction,
+    loop_count: &mut i32,
 ) -> PatrolSection {
     let mut distance = 0;
     let mut unrepeated_distance = 0;
     let mut cur_x = start_x;
     let mut cur_y = start_y;
     loop {
+        // Only check for loop if this is a new position
+        //if cur_x == 1 && cur_y == 2 && matches!(dir, Direction::Up) &&
+        if
+            check_for_loop(map.to_vec().clone(), cur_x, cur_y, dir)
+        {
+            *loop_count += 1;
+            //println!(
+            //    "Found loop by turning {:?} at {},{}",
+            //    dir.turn_clockwise(),
+            //    cur_x,
+            //    cur_y
+            //)
+        }
         cur_x += dir.to_offset().0;
         cur_y += dir.to_offset().1;
         // Convert cur_x, cur_y to usize so we can index into it
@@ -129,11 +194,11 @@ fn solve(raw_data: &str) {
                             cur_y = y.try_into().expect("array index to always convert to i32");
                             // Starting position is always already visited
                             out.already_visited_up = true;
-                        },
+                        }
                         '#' => out.is_obstacle = true,
-                        '.' => {},
+                        '.' => {}
                         c => panic!("Unexpected character '{}'", c),
-                    } 
+                    }
                     out
                 })
                 .collect()
@@ -141,8 +206,9 @@ fn solve(raw_data: &str) {
         .collect();
     // distance starts at 1 since the starting location counts
     let mut unique_distance = 1;
+    let mut obstacle_count = 0;
     loop {
-        match distance_to_obstacle(&mut map, cur_x, cur_y, &cur_dir) {
+        match distance_to_obstacle(&mut map, cur_x, cur_y, &cur_dir, &mut obstacle_count) {
             PatrolSection::Stayed(total_dis, unique_dis) => {
                 unique_distance += unique_dis;
                 // Modify our x and y by adding our offset multiplied by the distance travelled
@@ -158,6 +224,7 @@ fn solve(raw_data: &str) {
         }
     }
     println!("Total distance patrolled is {}", unique_distance);
+    println!("Obstacle count is {}", obstacle_count);
 }
 
 pub fn solution() {
