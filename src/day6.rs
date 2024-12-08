@@ -67,15 +67,23 @@ enum PatrolSection {
     Left(i32),
 }
 
-fn check_for_loop(mut map: Vec<Vec<MapPosition>>, x: i32, y: i32, input_dir: &Direction) -> bool {
-    // Simulate what would happen if we turned at this position
+fn check_for_obstacle(
+    orig_map: &[Vec<MapPosition>],
+    x: i32,
+    y: i32,
+    input_dir: &Direction,
+) -> bool {
+    // Simulate what would happen if there was an obstacle in front of us at this position
+    // If
     // If we ever end up in a spot we've already been facing a direction we've already faced at
-    // that spot, we have a loop and should break
+    // that spot, we have a loop and the obstacle is valid
     // Otherwise we should go out of bounds, in which case there's no loop
-    let mut current_dir = input_dir.turn_clockwise();
-    //println!("Starting to check loop at {}, {}, {:?}", x, y, current_dir);
+    // Clone the map
+    let mut map = orig_map.to_vec().clone();
+    let mut current_dir = input_dir.clone();
     let mut cur_x = x;
     let mut cur_y = y;
+    let mut first_iter = true;
     loop {
         let test_x = cur_x + current_dir.to_offset().0;
         let test_y = cur_y + current_dir.to_offset().1;
@@ -90,29 +98,36 @@ fn check_for_loop(mut map: Vec<Vec<MapPosition>>, x: i32, y: i32, input_dir: &Di
                 // Otherwise, one of them is negative, we're out of bounds, so return Left from the
                 // main function
                 _ => {
-                    //println!("Went OOB, exiting");
                     return false;
                 }
             }
         };
         // if this is Some then there is a character at (x, y)
         if let Some(pos) = map.get_mut(y).and_then(|row| row.get_mut(x)) {
+            if first_iter {
+                // Check if our test position has already been walked over
+                // If so, that means an obstacle can't go here
+                if pos.already_visited() {
+                    return false;
+                }
+                if !pos.is_obstacle {
+                    // Place our loop obstacle
+                    pos.is_obstacle = true;
+                }
+                first_iter = false;
+            }
             if pos.is_obstacle {
-                //println!("{},{} is obstacle, turning", x, y);
                 pos.set_already_visited(&current_dir);
                 current_dir = current_dir.turn_clockwise();
             } else if pos.already_visited_dir(&current_dir) {
-                //println!("Found loop facing {:?} at {},{}", current_dir, x, y);
                 return true;
             } else {
                 pos.set_already_visited(&current_dir);
-                //println!("{},{} is irrelevant, continuing", x, y);
                 cur_x = test_x;
                 cur_y = test_y;
             }
         // otherwise, we went out of bounds with either x or y, so return Left
         } else {
-            //println!("Went OOB, exiting");
             return false;
         }
     }
@@ -123,25 +138,15 @@ fn distance_to_obstacle(
     start_x: i32,
     start_y: i32,
     dir: &Direction,
-    loop_count: &mut i32,
+    possible_obstacle_count: &mut i32,
 ) -> PatrolSection {
     let mut distance = 0;
     let mut unrepeated_distance = 0;
     let mut cur_x = start_x;
     let mut cur_y = start_y;
     loop {
-        // Only check for loop if this is a new position
-        //if cur_x == 1 && cur_y == 2 && matches!(dir, Direction::Up) &&
-        if
-            check_for_loop(map.to_vec().clone(), cur_x, cur_y, dir)
-        {
-            *loop_count += 1;
-            //println!(
-            //    "Found loop by turning {:?} at {},{}",
-            //    dir.turn_clockwise(),
-            //    cur_x,
-            //    cur_y
-            //)
+        if check_for_obstacle(map, cur_x, cur_y, dir) {
+            *possible_obstacle_count += 1;
         }
         cur_x += dir.to_offset().0;
         cur_y += dir.to_offset().1;
