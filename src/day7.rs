@@ -65,10 +65,8 @@ fn generate_operator_permutations(
 pub fn solve(raw_data: &str) {}
 
 pub fn solution() {
-    println!(
-        "{:?}",
-        generate_operator_permutations(4, vec![Operator::Plus, Operator::Times])
-            .collect::<Vec<_>>()
-            .len()
-    );
+    let res = generate_operator_permutations(4, vec![Operator::Plus, Operator::Times])
+        .collect::<Vec<_>>();
+    println!("{:#?}", res);
+    println!("{} items", res.len());
 }
