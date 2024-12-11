@@ -136,11 +136,15 @@ fn count_ecks_mas(data: &str) {
                     (-1, 1) => (-2, 0),
                     _ => panic!("Unexpected direction"),
                 };
-                let other_m_x = match usize::try_from(i32::try_from(x).expect("any x to convert to i32") + offset.0) {
+                let other_m_x = match usize::try_from(
+                    i32::try_from(x).expect("any x to convert to i32") + offset.0,
+                ) {
                     Ok(i) => i,
                     Err(_) => continue,
                 };
-                let other_m_y = match usize::try_from(i32::try_from(y).expect("any x to convert to i32")+ offset.1) {
+                let other_m_y = match usize::try_from(
+                    i32::try_from(y).expect("any x to convert to i32") + offset.1,
+                ) {
                     Ok(i) => i,
                     Err(_) => continue,
                 };
@@ -170,9 +174,4 @@ pub fn solution() {
     let raw_data = fs::read_to_string("input/day4input.txt").expect("Failed to read input file!");
     count_xmas(&raw_data);
     count_ecks_mas(&raw_data);
-}
-
-#[test]
-fn it_works() {
-    todo!();
 }

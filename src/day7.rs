@@ -1,9 +1,12 @@
 use std::fs;
 
+use proptest::proptest;
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum Operator {
     Plus,
     Times,
+    Concat,
 }
 
 fn next_operator<T: PartialEq + Copy>(cur: T, list: &[T]) -> Option<T> {
@@ -83,6 +86,11 @@ fn parse_raw_data(raw_data: &'_ str) -> impl Iterator<Item = Equation> + '_ {
         })
 }
 
+fn number_concat(left: i64, right: i64) -> i64 {
+    let right_digits = (right as f64).log(10.0).trunc() as u32 + 1;
+    (left * 10_i64.pow(right_digits)) + right
+}
+
 fn test_equation(equation: &Equation, operators: &[Operator]) -> bool {
     if equation.numbers.is_empty() {
         return false;
@@ -105,6 +113,7 @@ fn test_equation(equation: &Equation, operators: &[Operator]) -> bool {
             .fold(equation.numbers[0], |acc, (n, operator)| match operator {
                 Operator::Plus => acc + n,
                 Operator::Times => acc * n,
+                Operator::Concat => number_concat(acc, *n),
             })
             // Compare the result of our fold with our test value
             == equation.test_value
@@ -112,17 +121,43 @@ fn test_equation(equation: &Equation, operators: &[Operator]) -> bool {
 }
 
 pub fn solve(raw_data: &str) {
-    let operators = vec![Operator::Plus, Operator::Times];
-    let total_sum: i64 = parse_raw_data(raw_data)
-        .filter_map(|eq| match test_equation(&eq, &operators) {
-            true => Some(eq.test_value),
-            false => None,
+    let total_sum_p1: i64 = parse_raw_data(raw_data)
+        .filter_map(
+            |eq| match test_equation(&eq, &[Operator::Plus, Operator::Times]) {
+                true => Some(eq.test_value),
+                false => None,
+            },
+        )
+        .sum();
+    println!(
+        "Total sum of valid equations for part 1 is {}",
+        total_sum_p1
+    );
+    let total_sum_p2: i64 = parse_raw_data(raw_data)
+        .filter_map(|eq| {
+            match test_equation(&eq, &[Operator::Plus, Operator::Times, Operator::Concat]) {
+                true => Some(eq.test_value),
+                false => None,
+            }
         })
         .sum();
-    println!("Total sum of valid equations is {}", total_sum);
+    println!(
+        "Total sum of valid equations for part 2 is {}",
+        total_sum_p2
+    );
 }
 
 pub fn solution() {
     let raw_data = fs::read_to_string("input/day7input.txt").expect("Failed to read input file!");
     solve(&raw_data);
+}
+
+proptest! {
+    #[test]
+    fn test_num_concat(left in 0..10000000_i32, right in 0..10000000_i32) {
+        let slow = str::parse::<i64>(&(left.to_string() + &right.to_string())).expect("slow string concat to work");
+        assert_eq!(
+            number_concat(left.into(), right.into()), slow
+        )
+    }
 }
