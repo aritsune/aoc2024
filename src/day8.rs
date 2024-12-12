@@ -1,21 +1,11 @@
 use std::{
     collections::{HashMap, HashSet},
     fs,
-    hash::Hash,
+    hash::{Hash, RandomState},
 };
 
-#[derive(Default, Eq, PartialEq, Clone, Copy, Debug)]
+#[derive(Default, Eq, PartialEq, Clone, Copy, Debug, Hash)]
 struct Coordinates(usize, usize);
-
-impl Hash for Coordinates {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        let Coordinates(x, y) = self;
-        // I have no idea what this is doing!
-        let hash_val = ((x + y) * (x + y + 1) / 2) + y;
-
-        state.write_usize(hash_val);
-    }
-}
 
 fn ascii_to_antennas_map(raw_data: &str) -> HashMap<char, Vec<Coordinates>> {
     let mut map = HashMap::<char, Vec<Coordinates>>::new();
@@ -100,10 +90,15 @@ fn get_valid_pairs(
     xmax: usize,
     resonate: bool,
 ) -> HashSet<Coordinates> {
-    HashSet::<Coordinates>::from_iter(map.values().flat_map(|coords_for_antenna| {
+    let nodes = map.values().flat_map(|coords_for_antenna| {
         all_pairs(coords_for_antenna)
             .flat_map(|(left, right)| process_coord_pair(left, right, xmax, ymax, resonate))
-    }))
+    });
+    if resonate {
+        let antennas = map.values().flatten().copied();
+        return HashSet::<Coordinates>::from_iter(antennas.chain(nodes));
+    }
+    HashSet::<Coordinates>::from_iter(nodes)
 }
 
 fn solve(raw_data: &str) {
@@ -128,6 +123,6 @@ fn solve(raw_data: &str) {
 }
 
 pub fn solution() {
-    let raw_data = fs::read_to_string("input/day8test.txt").expect("Failed to read input file!");
+    let raw_data = fs::read_to_string("input/day8input.txt").expect("Failed to read input file!");
     solve(&raw_data);
 }
