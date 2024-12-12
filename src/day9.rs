@@ -1,6 +1,6 @@
 use std::fs;
 
-fn solve(raw_data: &str) {
+fn calc_checksum(raw_data: &str, allow_fragmentation: bool) -> usize {
     // Left cursor is the main cursor
     let left_cursor = raw_data.chars().enumerate();
     let mut left_id = 0;
@@ -57,12 +57,17 @@ fn solve(raw_data: &str) {
             left_id += 1;
             output_position += left_size;
         } else {
-            // We need to take from the right as many blocks of data as we have free space on the
-            // left
+            // We need to take from the right as many blocks of data as we have free space on the left
             // Decrement left_size until it's 0
             while left_size > 0 {
                 let right_is_used = right_index % 2 == 0;
                 if right_is_used {
+                    // Check if we allow fragmentation
+                    // If not, and right_value is bigger than left_size (i.e. the file at right is
+                    // bigger than the free space we have available), then skip the rest of this free space
+                    if !allow_fragmentation && right_value > left_size {
+                        break;
+                    }
                     // Either take however much the right has available, or however much the left needs
                     // Whichever is lower
                     let right_grabbed_value = usize::min(right_value, left_size);
@@ -83,16 +88,25 @@ fn solve(raw_data: &str) {
                     }
                 } else {
                     // Skip unused space on the right entirely
-                    right_next();
+                    (right_index, right_value) = right_next();
                 }
             }
         }
     }
-    println!("Disk checksum is {}", output);
+    output
+}
+
+fn solve(raw_data: &str) {
+    let checksum_fragmented = calc_checksum(raw_data, true);
+    println!("Checksum with fragmentation is {}", checksum_fragmented);
+    let checksum_unfragmented = calc_checksum(raw_data, false);
+    println!(
+        "Checksum without fragmentation is {}",
+        checksum_unfragmented
+    );
 }
 
 pub fn solution() {
-    println!("Day 9:");
-    let raw_data = fs::read_to_string("input/day9input.txt").expect("input file to exist");
+    let raw_data = fs::read_to_string("input/day9test.txt").expect("input file to exist");
     solve(raw_data.trim());
 }
