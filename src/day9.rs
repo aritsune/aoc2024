@@ -1,6 +1,6 @@
-use std::fs;
+use std::{fmt::Debug, fs};
 
-fn calc_checksum(raw_data: &str, allow_fragmentation: bool) -> usize {
+fn calc_checksum_fragmented(raw_data: &str) -> usize {
     // Left cursor is the main cursor
     let left_cursor = raw_data.chars().enumerate();
     let mut left_id = 0;
@@ -57,17 +57,12 @@ fn calc_checksum(raw_data: &str, allow_fragmentation: bool) -> usize {
             left_id += 1;
             output_position += left_size;
         } else {
-            // We need to take from the right as many blocks of data as we have free space on the left
-            // Decrement left_size until it's 0
             while left_size > 0 {
                 let right_is_used = right_index % 2 == 0;
                 if right_is_used {
                     // Check if we allow fragmentation
                     // If not, and right_value is bigger than left_size (i.e. the file at right is
                     // bigger than the free space we have available), then skip the rest of this free space
-                    if !allow_fragmentation && right_value > left_size {
-                        break;
-                    }
                     // Either take however much the right has available, or however much the left needs
                     // Whichever is lower
                     let right_grabbed_value = usize::min(right_value, left_size);
@@ -96,10 +91,90 @@ fn calc_checksum(raw_data: &str, allow_fragmentation: bool) -> usize {
     output
 }
 
+#[derive(Clone, Copy)]
+enum Block {
+    Free(usize),
+    Used(usize, usize),
+}
+
+impl Debug for Block {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Free(size) => f.write_str(&(0..*size).map(|_| '.').collect::<String>()),
+            Self::Used(id, size) => {
+                f.write_str(&(0..*size).map(|_| id.to_string()).collect::<String>())
+            }
+        }
+    }
+}
+
+fn calc_checksum_nofrag(raw_data: &str) -> usize {
+    let mut blocks = raw_data
+        .chars()
+        .enumerate()
+        .filter_map(|(i, char)| {
+            let size = char
+                .to_digit(10)
+                .expect("characters in input to always parse to u32")
+                .try_into()
+                .expect("u32 to always parse to usize");
+            if size == 0 {
+                None
+            } else if i % 2 == 0 {
+                Some(Block::Used(i / 2, size))
+            } else {
+                Some(Block::Free(size))
+            }
+        })
+        .collect::<Vec<_>>();
+    //
+    let mut initial_length = blocks.len();
+    let mut i = blocks.len() - 1;
+    while let Some(item) = blocks.get(i).copied() {
+        if let Block::Used(iid, isize) = item {
+            // find leftmost free block that fits
+            let destination_slot = (0..i)
+                .filter_map(|i| match blocks.get(i) {
+                    Some(Block::Free(jsize)) => Some((i, *jsize)),
+                    Some(Block::Used(_, _)) => None,
+                    None => None,
+                })
+                .find(|(_, jsize)| *jsize >= isize);
+            if let Some((destination_i, destination_size)) = destination_slot {
+                if isize < destination_size {
+                    blocks.remove(i);
+                    blocks.remove(destination_i);
+                    blocks.insert(destination_i, Block::Free(destination_size - isize));
+                    blocks.insert(destination_i, Block::Used(iid, isize));
+                    blocks.insert(i + 1, Block::Free(isize));
+                } else {
+                    blocks.swap(i, destination_i);
+                }
+            }
+        }
+        i -= 1;
+    }
+    let mut pos = 0;
+    blocks
+        .iter()
+        .map(|block| match block {
+            Block::Free(size) => {
+                pos += size;
+                0
+            }
+            Block::Used(id, size) => {
+                let result = id * (pos..pos + size).sum::<usize>();
+                pos += size;
+                result
+            }
+        })
+        .sum()
+}
+
 fn solve(raw_data: &str) {
-    let checksum_fragmented = calc_checksum(raw_data, true);
+    let checksum_fragmented = calc_checksum_fragmented(raw_data);
     println!("Checksum with fragmentation is {}", checksum_fragmented);
-    let checksum_unfragmented = calc_checksum(raw_data, false);
+    let checksum_unfragmented = calc_checksum_nofrag(raw_data);
     println!(
         "Checksum without fragmentation is {}",
         checksum_unfragmented
@@ -107,6 +182,6 @@ fn solve(raw_data: &str) {
 }
 
 pub fn solution() {
-    let raw_data = fs::read_to_string("input/day9test.txt").expect("input file to exist");
+    let raw_data = fs::read_to_string("input/day9input.txt").expect("input file to exist");
     solve(raw_data.trim());
 }
