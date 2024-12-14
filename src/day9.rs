@@ -112,27 +112,22 @@ fn calc_checksum_nofrag(raw_data: &str) -> usize {
     let mut blocks = raw_data
         .chars()
         .enumerate()
-        .filter_map(|(i, char)| {
+        .map(|(i, char)| {
             let size = char
                 .to_digit(10)
                 .expect("characters in input to always parse to u32")
                 .try_into()
                 .expect("u32 to always parse to usize");
-            if size == 0 {
-                None
-            } else if i % 2 == 0 {
-                Some(Block::Used(i / 2, size))
+            if i % 2 == 0 {
+                Block::Used(i / 2, size)
             } else {
-                Some(Block::Free(size))
+                Block::Free(size)
             }
         })
         .collect::<Vec<_>>();
-    //
-    let mut initial_length = blocks.len();
     let mut i = blocks.len() - 1;
     while let Some(item) = blocks.get(i).copied() {
         if let Block::Used(iid, isize) = item {
-            // find leftmost free block that fits
             let destination_slot = (0..i)
                 .filter_map(|i| match blocks.get(i) {
                     Some(Block::Free(jsize)) => Some((i, *jsize)),
@@ -141,14 +136,17 @@ fn calc_checksum_nofrag(raw_data: &str) -> usize {
                 })
                 .find(|(_, jsize)| *jsize >= isize);
             if let Some((destination_i, destination_size)) = destination_slot {
+                blocks.remove(i);
+                blocks.insert(
+                    i,
+                    Block::Free(destination_size - (destination_size - isize)),
+                );
+                blocks.insert(destination_i, Block::Used(iid, isize));
                 if isize < destination_size {
-                    blocks.remove(i);
-                    blocks.remove(destination_i);
-                    blocks.insert(destination_i, Block::Free(destination_size - isize));
-                    blocks.insert(destination_i, Block::Used(iid, isize));
-                    blocks.insert(i + 1, Block::Free(isize));
+                    blocks[destination_i + 1] = Block::Free(destination_size - isize);
+                    i += 1;
                 } else {
-                    blocks.swap(i, destination_i);
+                    blocks.remove(destination_i + 1);
                 }
             }
         }
