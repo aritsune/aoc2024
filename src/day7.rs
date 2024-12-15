@@ -1,3 +1,4 @@
+use crate::util::count_digits;
 use std::fs;
 
 use proptest::proptest;
@@ -87,8 +88,8 @@ fn parse_raw_data(raw_data: &'_ str) -> impl Iterator<Item = Equation> + '_ {
 }
 
 fn number_concat(left: i64, right: i64) -> i64 {
-    let right_digits = (right as f64).log(10.0).trunc() as u32 + 1;
-    (left * 10_i64.pow(right_digits)) + right
+    let right_digits = count_digits(&(right as usize));
+    (left * 10_i64.pow(right_digits as u32)) + right
 }
 
 fn test_equation(equation: &Equation, operators: &[Operator]) -> bool {
