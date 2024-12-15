@@ -1,5 +1,5 @@
-use std::fs;
 use proptest::proptest;
+use std::fs;
 
 fn parse_input(input: &str) -> Vec<Vec<i32>> {
     input
@@ -12,43 +12,36 @@ fn parse_input(input: &str) -> Vec<Vec<i32>> {
         .collect::<Vec<_>>()
 }
 
-fn test_is_safe(test: &[i32], fails_allowed: i32) -> bool {
+fn test_is_safe(test: &[i32], dampen: bool) -> bool {
     let mut increased = false;
     let mut decreased = false;
-    let mut remaining_fails = fails_allowed;
     // Skip the first item, we only want items where we have a previous item to compare to
+    if dampen {
+        let basecase = test_is_safe(test, false);
+        if !basecase {
+            return (0..test.len())
+                .any(|i| test_is_safe(&[&test[0..i], &test[(i + 1)..test.len()]].concat(), false));
+        }
+    }
     for (i, num) in test[1..].iter().enumerate() {
         let last = test[i];
         let diff = last - num;
         match diff {
             // No change or too large change - not safe
-            0 | ..=-4 | 4.. => {
-                if remaining_fails > 0 {
-                    remaining_fails -= 1
-                } else {
-                    return false;
-                }
-            }
+            0 | ..=-4 | 4.. => return false,
+
             // Decreased within bounds
             -3..0 => {
                 // If we've previously increased, it's not safe
                 if increased {
-                    if remaining_fails > 0 {
-                        remaining_fails -= 1
-                    } else {
-                        return false;
-                    }
+                    return false;
                 } else {
                     decreased = true;
                 }
             }
             1..=3 => {
                 if decreased {
-                    if remaining_fails > 0 {
-                        remaining_fails -= 1
-                    } else {
-                        return false;
-                    }
+                    return false;
                 } else {
                     increased = true;
                 }
@@ -64,7 +57,7 @@ pub fn solve(raw_data: &str) {
     let safe_count: i32 = data
         .iter()
         .filter(|t| !t.is_empty())
-        .map(|t| test_is_safe(t, 0))
+        .map(|t| test_is_safe(t, false))
         .map(|res| match res {
             true => 1,
             false => 0,
@@ -74,7 +67,7 @@ pub fn solve(raw_data: &str) {
     let safe_count_with_dampener: i32 = data
         .iter()
         .filter(|t| !t.is_empty())
-        .map(|t| test_is_safe(t, 1))
+        .map(|t| test_is_safe(t, true))
         .map(|res| match res {
             true => 1,
             false => 0,
@@ -84,7 +77,7 @@ pub fn solve(raw_data: &str) {
 }
 
 pub fn solution() {
-    let raw_data = fs::read_to_string("input/day2input.txt").expect("Failed to read input file!");
+    let raw_data = fs::read_to_string("input/day2xeph.txt").expect("Failed to read input file!");
     solve(&raw_data);
 }
 
