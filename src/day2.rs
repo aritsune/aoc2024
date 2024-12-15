@@ -17,11 +17,8 @@ fn test_is_safe(test: &[i32], dampen: bool) -> bool {
     let mut decreased = false;
     // Skip the first item, we only want items where we have a previous item to compare to
     if dampen {
-        let basecase = test_is_safe(test, false);
-        if !basecase {
-            return (0..test.len())
-                .any(|i| test_is_safe(&[&test[0..i], &test[(i + 1)..test.len()]].concat(), false));
-        }
+        return (0..test.len())
+            .any(|i| test_is_safe(&[&test[0..i], &test[(i + 1)..test.len()]].concat(), false));
     }
     for (i, num) in test[1..].iter().enumerate() {
         let last = test[i];
@@ -77,7 +74,7 @@ pub fn solve(raw_data: &str) {
 }
 
 pub fn solution() {
-    let raw_data = fs::read_to_string("input/day2input.txt").expect("Failed to read input file!");
+    let raw_data = fs::read_to_string("input/day2xeph.txt").expect("Failed to read input file!");
     solve(&raw_data);
 }
 
