@@ -77,7 +77,7 @@ impl<'mapstr> TopographicMap<'mapstr> {
         for (i, charnum) in data.iter().enumerate() {
             // digits
             if todigit(charnum) == 0 {
-                trailheads.push(Coordinates::new(i - (y * width) - y, y));
+                trailheads.push(Coordinates::new(i - (y * width + y), y));
             // newline
             } else if *charnum == 10 {
                 if width == 0 {
@@ -111,39 +111,31 @@ impl<'mapstr> TopographicMap<'mapstr> {
         let mut rating = 0;
         let mut curcoords = coords.clone();
         let mut last_op: Option<&u8> = None;
+        // keep going as long as get_at for our current coordinates doesn't return None
         while let Some(digit) = self.get_at(&curcoords) {
-            // this code only runs on second+ iterations as on the first last_op will be None
+            // this code only runs on second+ iterations as on the first iteration, last_op will be None
             if let Some(last) = last_op {
                 if digit - last != 1 {
-                    //println!(
-                    //    "Breaking due to bad gradient: {}->{} -- {:?}",
-                    //    todigit(last),
-                    //    todigit(digit),
-                    //    curcoords
-                    //);
+                    // Didn't go up by exactly 1, so this isn't a trail
                     break;
                 } else if todigit(digit) == 9 {
                     // only check for a 9 if we have a last value (i.e. not first iteration)
                     // AND we passed the gradient check
-                    //println!("Found peak (9) at {:?}", &curcoords);
+                    // if we have and we found a 9, this is the end of a trail
+                    // for score, check if we don't already have this same end position first
                     if !peak_set.contains(&curcoords) {
                         peak_set.insert(curcoords);
                         score += 1;
                     }
+                    // for rating, just increment it
                     rating += 1;
                     break;
                 } else {
-                    //println!("->{:?} {}->{}", curcoords, todigit(last), todigit(digit));
+                    // recursively send out searches in the directions parallel and add the results
+                    // to our running total
                     let (rec_score, rec_rating) = self.get_score_and_rating(
                         &curcoords,
-                        &direction
-                            .parallels()
-                            .into_iter()
-                            .filter(|dir| {
-                                !(curcoords.y == 0 && *dir == Direction::Up)
-                                    && !(curcoords.x == 0 && *dir == Direction::Left)
-                            })
-                            .collect::<Vec<_>>(),
+                        &direction.parallels().into_iter().collect::<Vec<_>>(),
                         peak_set,
                     );
                     score += rec_score;
@@ -151,6 +143,8 @@ impl<'mapstr> TopographicMap<'mapstr> {
                 }
             }
             last_op = Some(digit);
+            // increment coordinates, if the checked usize add fails then we're out of bounds and
+            // should break
             if let (Some(x), Some(y)) = (
                 curcoords.x.checked_add_signed(direction.x()),
                 curcoords.y.checked_add_signed(direction.y()),
@@ -158,12 +152,10 @@ impl<'mapstr> TopographicMap<'mapstr> {
                 curcoords = Coordinates { x, y };
                 if let Some(&d) = self.get_at(&curcoords) {
                     if d == 10 {
-                        //println!("Breaking due to hitting x boundary");
                         break;
                     }
                 }
             } else {
-                //println!("Breaking due to hitting other boundary");
                 break;
             }
         }
