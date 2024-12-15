@@ -77,7 +77,7 @@ pub fn solve(raw_data: &str) {
 }
 
 pub fn solution() {
-    let raw_data = fs::read_to_string("input/day2xeph.txt").expect("Failed to read input file!");
+    let raw_data = fs::read_to_string("input/day2input.txt").expect("Failed to read input file!");
     solve(&raw_data);
 }
 
